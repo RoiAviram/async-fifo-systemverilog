@@ -5,8 +5,8 @@
 <h1 align="center">Asynchronous FIFO — Gray-Code CDC Design</h1>
 
 <p align="center">
-  <b>Production-quality Clock Domain Crossing FIFO · SystemVerilog · AMD Artix-7</b><br/>
-  <sub>Fully constrained &middot; Timing-clean &middot; Formally verified with golden-reference scoreboard</sub>
+  <b>Dual-Clock Asynchronous FIFO with Gray-Code CDC · SystemVerilog · AMD Artix-7</b><br/>
+  <sub>Hardware Design Portfolio &middot; Fully Constrained &middot; Zero Timing Violations &middot; Scoreboard-Verified</sub>
 </p>
 
 <p align="center">
@@ -55,42 +55,45 @@ This project implements a **fully asynchronous dual-clock FIFO** based on the cl
 ## Architecture
 
 ```
-                      ┌───────────────────────────────────────────────────────┐
-                      │                   async_fifo (top)                    │
-                      │                                                       │
-   wr_clk domain      │                                       rd_clk domain   │
-  ─────────────────   │                                     ─────────────────  │
-                      │                                                       │
-  wr_data[7:0] ──────►│  ┌──────────────┐    ┌──────────────┐                 │
-  wr_en ─────────────►│  │              │    │              │                 │──────► rd_data[7:0]
-                      │  │  wptr_full   │    │  fifo_mem    │                 │
-                      │  │              │    │  (Dist. RAM) │                 │
-                      │  │  wbin[4:0]   │───►│  16 × 8-bit  │───►│            │
-  full ◄──────────────│  │  wgray[4:0]  │    │              │    │            │
-                      │  │  full_val    │    │  sync write  │    │            │
-                      │  └──────┬───────┘    │  async read  │    │            │
-                      │         │            └──────────────┘    │            │
-                      │         │ wptr_gray[4:0]                 │            │
-                      │         ▼                                │            │
-                      │  ┌──────────────┐                        │            │
-                      │  │  sync_2ff    │  (wr_clk → rd_clk)    │            │
-                      │  │  ASYNC_REG   │────────────────────────►│            │
-                      │  │  2-stage FF  │   wptr_gray_sync[4:0]  │            │
-                      │  └──────────────┘                        │            │
-                      │                                          │            │
-                      │  ┌──────────────┐                 ┌──────┴───────┐    │
-                      │  │  sync_2ff    │  (rd_clk → wr_clk)│            │    │
-                      │  │  ASYNC_REG   │◄────────────────── │ rptr_empty │    │
-                      │  │  2-stage FF  │   rptr_gray[4:0]  │            │    │
-                      │  └──────────────┘                    │ rbin[4:0]  │    │
-                      │     rptr_gray_sync[4:0]              │ rgray[4:0]│    │
-                      │         │                            │ empty_val │    │
-                      │         └────────────────────────────►│            │    │
-                      │                                       └────────────┘    │
-                      │                                                       │
-  rd_en ─────────────►│                                                       │
-  empty ◄─────────────│                                                       │
-                      └───────────────────────────────────────────────────────┘
+                      ┌────────────────────────────────────────────────────────────────────────┐
+                      │                            async_fifo (top)                            │
+                      │                                                                        │
+   wr_clk domain      │                                                        rd_clk domain   │
+  ─────────────────   │                                                      ───────────────── │
+                      │                                                                        │
+  wr_data[7:0] ──────►│─────────────────────────────┐                                          │
+  wr_en ─────────────►│──────┐                      │                                          │
+                      │      ▼                      ▼                                          │
+                      │  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐          │
+  full ◄──────────────│──┤  wptr_full   │      │   fifo_mem   │      │  rptr_empty  ├───┬──────│──────► empty
+                      │  │              │      │ (Dist. RAM)  │      │              │   │      │
+                      │  │  waddr [3:0] ├─────►│  16 × 8-bit  │◄─────┤  raddr [3:0] │   │      │
+                      │  │              │      │              │      │              │   │      │
+                      │  │  wgray [4:0] │      │  sync write  │      │  rgray [4:0] │   │      │
+                      │  └──────┬───────┘      │  async read  │      └──────┬───────┘   │      │
+                      │         │              └──────┬───────┘             │           │      │
+                      │         │                     │                     │           │      │
+                      │         │                     └─────────────────────┼───────────┼──────│──────► rd_data[7:0]
+                      │         │                                           │           │      │
+                      │         │ wptr_gray[4:0]                            │           │      │
+                      │         ▼                                           │           │      │
+                      │  ┌──────────────┐    (wr_clk → rd_clk)              │           │      │
+                      │  │   sync_2ff   ├──────────────────────────────────►│           │      │
+                      │  │  (ASYNC_REG) │         wptr_gray_sync[4:0]       │           │      │
+                      │  └──────────────┘                                   │           │      │
+                      │                                                     │           │      │
+                      │  ┌──────────────┐    (rd_clk → wr_clk)              │           │      │
+                      │  │   sync_2ff   │◄──────────────────────────────────┘           │      │
+                      │  │  (ASYNC_REG) │         rptr_gray[4:0]                        │      │
+                      │  └──────┬───────┘                                               │      │
+                      │         │                                                       │      │
+                      │         └───────────────┐                                       │      │
+                      │                         ▼                                       │      │
+                      │                   to wptr_full                                  │      │
+                      │                                                                 │      │
+                      │                                                                 ▼      │
+                      │◄────────────────────────────────────────────────────────────────┴──────│◄───── rd_en
+                      └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
