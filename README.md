@@ -2,7 +2,7 @@
   <img src="docs/schematic.png" alt="Async FIFO Schematic" width="800"/>
 </p>
 
-<h1 align="center">Asynchronous FIFO — Gray-Code CDC Design</h1>
+<h1 align="center">Asynchronous FIFO - Gray-Code CDC Design</h1>
 
 <p align="center">
   <b>Dual-Clock Asynchronous FIFO with Gray-Code CDC · SystemVerilog · AMD Artix-7</b><br/>
@@ -36,7 +36,7 @@
 
 ## Overview
 
-This project implements a **fully asynchronous dual-clock FIFO** based on the classic Cummings/Alfke Gray-code pointer technique ([Simulation and Synthesis Techniques for Asynchronous FIFO Design, SNUG 2002](http://www.sunburst-design.com/papers/CummingsSNUG2002SJ_FIFO1.pdf)). The design safely transfers data between two unrelated clock domains — a **100 MHz write domain** and a **40 MHz read domain** — using Gray-coded pointer synchronization through 2-stage flip-flop chains.
+This project implements a **fully asynchronous dual-clock FIFO** based on the classic Cummings/Alfke Gray-code pointer technique ([Simulation and Synthesis Techniques for Asynchronous FIFO Design, SNUG 2002](http://www.sunburst-design.com/papers/CummingsSNUG2002SJ_FIFO1.pdf)). The design safely transfers data between two unrelated clock domains - a **100 MHz write domain** and a **40 MHz read domain** - using Gray-coded pointer synchronization through 2-stage flip-flop chains.
 
 **Key highlights:**
 
@@ -114,7 +114,7 @@ This project implements a **fully asynchronous dual-clock FIFO** based on the cl
 | Memory Address | 4 bits | `ADDR_WIDTH` (lower bits of binary pointer) |
 | Gray Pointer Width | 5 bits | Same as binary pointer width |
 
-The extra MSB in the pointer allows the design to distinguish between the **full** state (write pointer has wrapped once more than the read pointer) and the **empty** state (both pointers are equal) — a fundamental requirement for correct FIFO operation without an explicit element counter.
+The extra MSB in the pointer allows the design to distinguish between the **full** state (write pointer has wrapped once more than the read pointer) and the **empty** state (both pointers are equal) - a fundamental requirement for correct FIFO operation without an explicit element counter.
 
 ---
 
@@ -134,7 +134,7 @@ assign wgray_next = wbin_next ^ (wbin_next >> 1);
 assign rgray_next = rbin_next ^ (rbin_next >> 1);
 ```
 
-**Why Gray code?** When a Gray-coded counter increments, only **one bit** changes at a time. This eliminates the possibility of a synchronizer capturing an intermediate, glitched multi-bit transition — the worst-case outcome is reading the old value (safe) rather than a corrupt value (catastrophic).
+**Why Gray code?** When a Gray-coded counter increments, only **one bit** changes at a time. This eliminates the possibility of a synchronizer capturing an intermediate, glitched multi-bit transition - the worst-case outcome is reading the old value (safe) rather than a corrupt value (catastrophic).
 
 ### 2. Two-Stage Flip-Flop Synchronization
 
@@ -221,7 +221,7 @@ These constraints replace standard setup/hold analysis on cross-domain paths. Th
 
 ### 3. Bus Skew Constraints (`set_bus_skew`)
 
-Critical for **Gray code integrity** — ensures that the arrival-time skew between any two bits of a multi-bit Gray pointer does not exceed one destination clock period. If violated, the synchronizer could capture a state where more than one bit has changed, defeating the Gray code guarantee.
+Critical for **Gray code integrity** - ensures that the arrival-time skew between any two bits of a multi-bit Gray pointer does not exceed one destination clock period. If violated, the synchronizer could capture a state where more than one bit has changed, defeating the Gray code guarantee.
 
 | Bus | Skew Limit |
 |:---|:---:|
@@ -290,7 +290,7 @@ The self-checking testbench (`tb/tb_async_fifo.sv`) employs a **golden-reference
 ```
   ┌────────────────┐      ┌──────────────┐      ┌────────────────┐
   │  Write Driver  │─────►│   DUT (FIFO) │─────►│  Read Checker  │
-  │  (wr_clk)      │      │              │      │  (rd_clk)       │
+  │  (wr_clk)      │      │              │      │  (rd_clk)      │
   └───────┬────────┘      └──────────────┘      └───────┬────────┘
           │                                             │
           │           ┌──────────────────┐              │
